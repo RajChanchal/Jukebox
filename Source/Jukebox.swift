@@ -160,12 +160,12 @@ extension Jukebox {
             item.loadPlayerItem()
         }
     }
-
-    /**
-    Removes an item from the play queue
     
-    - parameter item: item to be removed
-    */
+    /**
+     Removes an item from the play queue
+     
+     - parameter item: item to be removed
+     */
     public func remove(item: JukeboxItem) {
         if let index = queuedItems.index(where: {$0.identifier == item.identifier}) {
             queuedItems.remove(at: index)
@@ -256,13 +256,13 @@ open class Jukebox: NSObject, JukeboxItemDelegate {
     // MARK:- Initializer -
     
     /**
-    Create an instance with a delegate and a list of items without loading their assets.
-    
-    - parameter delegate: jukebox delegate
-    - parameter items:    array of items to be added to the play queue
-    
-    - returns: Jukebox instance
-    */
+     Create an instance with a delegate and a list of items without loading their assets.
+     
+     - parameter delegate: jukebox delegate
+     - parameter items:    array of items to be added to the play queue
+     
+     - returns: Jukebox instance
+     */
     public required init?(delegate: JukeboxDelegate? = nil, items: [JukeboxItem] = [JukeboxItem]())  {
         self.delegate = delegate
         super.init()
@@ -457,7 +457,7 @@ open class Jukebox: NSObject, JukeboxItemDelegate {
         guard let userInfo = notification.userInfo as? [String: AnyObject] else { return }
         guard let rawInterruptionType = userInfo[AVAudioSessionInterruptionTypeKey] as? NSNumber else { return }
         guard let interruptionType = AVAudioSessionInterruptionType(rawValue: rawInterruptionType.uintValue) else { return }
-
+        
         switch interruptionType {
         case .began: //interruption started
             self.pause()

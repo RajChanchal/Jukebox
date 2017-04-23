@@ -37,7 +37,7 @@ class ViewController: UIViewController, JukeboxDelegate {
         jukebox = Jukebox(delegate: self, items: [
             JukeboxItem(URL: URL(string: "http://www.kissfm.ro/listen.pls")!),
             JukeboxItem(URL: URL(string: "http://www.noiseaddicts.com/samples_1w72b820/2514.mp3")!),
-            JukeboxItem(URL: URL(string: "http://www.noiseaddicts.com/samples_1w72b820/2958.mp3")!)
+            JukeboxItem(URL: URL(string: "http://www.noiseaddicts.com/samples_1w72b820/2958.mp3")!, localTitle: nil, loadMetadata: false)
             ])!
         
         /// Later add another item
