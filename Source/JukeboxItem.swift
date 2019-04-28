@@ -164,7 +164,7 @@ open class JukeboxItem: NSObject {
         timer = Timer.scheduledTimer(timeInterval: 0.5, target: self, selector: #selector(JukeboxItem.notifyDelegate), userInfo: nil, repeats: false)
     }
     
-    func notifyDelegate() {
+    @objc func notifyDelegate() {
         timer?.invalidate()
         timer = nil
         self.delegate?.jukeboxItemDidUpdate(self)
@@ -192,7 +192,7 @@ open class JukeboxItem: NSObject {
             
             for item in metadataArray
             {
-                item.loadValuesAsynchronously(forKeys: [AVMetadataKeySpaceCommon], completionHandler: { () -> Void in
+                item.loadValuesAsynchronously(forKeys: [convertFromAVMetadataKeySpace(AVMetadataKeySpace.common)], completionHandler: { () -> Void in
                     self.meta.process(metaItem: item)
                     DispatchQueue.main.async {
                         self.scheduleNotification()
@@ -206,7 +206,7 @@ open class JukeboxItem: NSObject {
 private extension JukeboxItem.Meta {
     mutating func process(metaItem item: AVMetadataItem) {
         
-        switch item.commonKey
+        switch convertFromOptionalAVMetadataKey(item.commonKey)
         {
         case "title"? :
             title = item.value as? String
@@ -243,4 +243,15 @@ private extension CMTime {
         guard time.isNaN == false else { return nil }
         return time
     }
+}
+
+// Helper function inserted by Swift 4.2 migrator.
+fileprivate func convertFromAVMetadataKeySpace(_ input: AVMetadataKeySpace) -> String {
+	return input.rawValue
+}
+
+// Helper function inserted by Swift 4.2 migrator.
+fileprivate func convertFromOptionalAVMetadataKey(_ input: AVMetadataKey?) -> String? {
+	guard let input = input else { return nil }
+	return input.rawValue
 }
