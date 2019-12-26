@@ -136,7 +136,7 @@ open class JukeboxItem: NSObject {
     }
     
     open override var description: String {
-        return "<JukeboxItem:\ntitle: \(String(describing: meta.title))\nalbum: \(String(describing: meta.album))\nartist:\(String(describing: meta.artist))\nduration : \(String(describing: meta.duration)),\ncurrentTime : \(currentTime)\nURL: \(URL)>"
+        return "<JukeboxItem:\ntitle: \(String(describing: meta.title))\nalbum: \(String(describing: meta.album))\nartist:\(String(describing: meta.artist))\nduration : \(String(describing: meta.duration)),\ncurrentTime : \(currentTime ?? -1)\nURL: \(URL)>"
     }
     
     // MARK:- Private methods -
