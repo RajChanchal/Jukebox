@@ -89,7 +89,7 @@ extension Jukebox {
     public func stop() {
         invalidatePlayback()
         state = .ready
-        UIApplication.shared.endBackgroundTask(convertToUIBackgroundTaskIdentifier(backgroundIdentifier.rawValue))
+        UIApplication.shared.endBackgroundTask(backgroundIdentifier)
         backgroundIdentifier = UIBackgroundTaskIdentifier.invalid
     }
     
@@ -160,14 +160,14 @@ extension Jukebox {
             item.loadPlayerItem()
         }
     }
-    
+
     /**
-     Removes an item from the play queue
-     
-     - parameter item: item to be removed
-     */
+    Removes an item from the play queue
+    
+    - parameter item: item to be removed
+    */
     public func remove(item: JukeboxItem) {
-        if let index = queuedItems.index(where: {$0.identifier == item.identifier}) {
+        if let index = queuedItems.firstIndex(where: {$0.identifier == item.identifier}) {
             queuedItems.remove(at: index)
         }
     }
@@ -256,13 +256,13 @@ open class Jukebox: NSObject, JukeboxItemDelegate {
     // MARK:- Initializer -
     
     /**
-     Create an instance with a delegate and a list of items without loading their assets.
-     
-     - parameter delegate: jukebox delegate
-     - parameter items:    array of items to be added to the play queue
-     
-     - returns: Jukebox instance
-     */
+    Create an instance with a delegate and a list of items without loading their assets.
+    
+    - parameter delegate: jukebox delegate
+    - parameter items:    array of items to be added to the play queue
+    
+    - returns: Jukebox instance
+    */
     public required init?(delegate: JukeboxDelegate? = nil, items: [JukeboxItem] = [JukeboxItem]())  {
         self.delegate = delegate
         super.init()
@@ -297,7 +297,7 @@ open class Jukebox: NSObject, JukeboxItemDelegate {
     
     func jukeboxItemDidLoadPlayerItem(_ item: JukeboxItem) {
         delegate?.jukeboxDidLoadItem(self, item: item)
-        let index = queuedItems.index{$0 === item}
+        let index = queuedItems.firstIndex{$0 === item}
         
         guard let playItem = item.playerItem
             , state == .loading && playIndex == index else {return}
@@ -337,7 +337,9 @@ open class Jukebox: NSObject, JukeboxItemDelegate {
         }
         
         if let img = currentItem?.meta.artwork {
-            nowPlayingInfo[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(image: img)
+            nowPlayingInfo[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: img.size) { (size) -> UIImage in
+                return img
+            }
         }
         
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
@@ -420,7 +422,7 @@ open class Jukebox: NSObject, JukeboxItemDelegate {
         guard let player = player , player.currentItem?.duration.isValid == true else {return}
         progressObserver = player.addPeriodicTimeObserver(forInterval: CMTimeMakeWithSeconds(0.05, preferredTimescale: Int32(NSEC_PER_SEC)), queue: nil, using: { [unowned self] (time : CMTime) -> Void in
             self.timerAction()
-        }) as AnyObject!
+        }) as AnyObject?
     }
     
     fileprivate func stopProgressTimer() {
@@ -435,13 +437,13 @@ open class Jukebox: NSObject, JukeboxItemDelegate {
     
     fileprivate func configureBackgroundAudioTask() {
         backgroundIdentifier =  UIApplication.shared.beginBackgroundTask (expirationHandler: { () -> Void in
-            UIApplication.shared.endBackgroundTask(convertToUIBackgroundTaskIdentifier(self.backgroundIdentifier.rawValue))
+            UIApplication.shared.endBackgroundTask(self.backgroundIdentifier)
             self.backgroundIdentifier = UIBackgroundTaskIdentifier.invalid
         })
     }
     
     fileprivate func configureAudioSession() throws {
-        try AVAudioSession.sharedInstance().setCategory(AVAudioSession.Category(rawValue: convertFromAVAudioSessionCategory(AVAudioSession.Category.playback)), mode: AVAudioSession.Mode.default)
+        try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
         try AVAudioSession.sharedInstance().setMode(AVAudioSession.Mode.default)
         try AVAudioSession.sharedInstance().setActive(true)
     }
@@ -457,7 +459,7 @@ open class Jukebox: NSObject, JukeboxItemDelegate {
         guard let userInfo = notification.userInfo as? [String: AnyObject] else { return }
         guard let rawInterruptionType = userInfo[AVAudioSessionInterruptionTypeKey] as? NSNumber else { return }
         guard let interruptionType = AVAudioSession.InterruptionType(rawValue: rawInterruptionType.uintValue) else { return }
-        
+
         switch interruptionType {
         case .began: //interruption started
             self.pause()
@@ -468,6 +470,8 @@ open class Jukebox: NSObject, JukeboxItemDelegate {
                     self.resumePlayback()
                 }
             }
+        @unknown default:
+            self.pause()
         }
     }
     
@@ -514,14 +518,4 @@ private extension Collection {
 
 private extension CMTime {
     var isValid : Bool { return (flags.intersection(.valid)) != [] }
-}
-
-// Helper function inserted by Swift 4.2 migrator.
-fileprivate func convertToUIBackgroundTaskIdentifier(_ input: Int) -> UIBackgroundTaskIdentifier {
-	return UIBackgroundTaskIdentifier(rawValue: input)
-}
-
-// Helper function inserted by Swift 4.2 migrator.
-fileprivate func convertFromAVAudioSessionCategory(_ input: AVAudioSession.Category) -> String {
-	return input.rawValue
 }

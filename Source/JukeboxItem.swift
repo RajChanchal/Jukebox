@@ -43,17 +43,16 @@ open class JukeboxItem: NSObject {
     
     // MARK:- Properties -
     
-    let identifier: String
-    var delegate: JukeboxItemDelegate?
+            let identifier: String
+            var delegate: JukeboxItemDelegate?
     fileprivate var didLoad = false
-    fileprivate var didLoadMetadata = false
     open  var localTitle: String?
-    open  let URL: Foundation.URL
+    public  let URL: Foundation.URL
     
     fileprivate(set) open var playerItem: AVPlayerItem?
     fileprivate (set) open var currentTime: Double?
     fileprivate(set) open lazy var meta = Meta()
-    
+
     
     fileprivate var timer: Timer?
     fileprivate let observedValue = "timedMetadata"
@@ -61,25 +60,23 @@ open class JukeboxItem: NSObject {
     // MARK:- Initializer -
     
     /**
-     Create an instance with an URL and local title
-     
-     - parameter URL: local or remote URL of the audio file
-     - parameter localTitle: an optional title for the file
-     
-     - returns: JukeboxItem instance
-     */
-    public required init(URL : Foundation.URL, localTitle : String? = nil, loadMetadata : Bool = true) {
+    Create an instance with an URL and local title
+    
+    - parameter URL: local or remote URL of the audio file
+    - parameter localTitle: an optional title for the file
+    
+    - returns: JukeboxItem instance
+    */
+    public required init(URL : Foundation.URL, localTitle : String? = nil) {
         self.URL = URL
         self.identifier = UUID().uuidString
         self.localTitle = localTitle
         super.init()
-        if loadMetadata {
-            configureMetadata()
-        }
+        configureMetadata()
     }
     
     override open func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
-        
+
         if change?[NSKeyValueChangeKey(rawValue:"name")] is NSNull {
             delegate?.jukeboxItemDidFail(self)
             return
@@ -139,7 +136,7 @@ open class JukeboxItem: NSObject {
     }
     
     open override var description: String {
-        return "<JukeboxItem:\ntitle: \(meta.title)\nalbum: \(meta.album)\nartist:\(meta.artist)\nduration : \(meta.duration),\ncurrentTime : \(currentTime)\nURL: \(URL)>"
+        return "<JukeboxItem:\ntitle: \(String(describing: meta.title))\nalbum: \(String(describing: meta.album))\nartist:\(String(describing: meta.artist))\nduration : \(String(describing: meta.duration)),\ncurrentTime : \(currentTime ?? -1)\nURL: \(URL)>"
     }
     
     // MARK:- Private methods -
@@ -171,7 +168,6 @@ open class JukeboxItem: NSObject {
     }
     
     fileprivate func loadAsync(_ completion: @escaping (_ asset: AVURLAsset) -> ()) {
-        configureMetadata()
         let asset = AVURLAsset(url: URL, options: nil)
         
         asset.loadValuesAsynchronously(forKeys: ["duration"], completionHandler: { () -> Void in
@@ -181,18 +177,15 @@ open class JukeboxItem: NSObject {
         })
     }
     
-    fileprivate func configureMetadata() {
-        guard !didLoadMetadata else {
-            return
-        }
-        didLoadMetadata = true
+    fileprivate func configureMetadata()
+    {
         
-        DispatchQueue.global(qos: .background).async {
+       DispatchQueue.global(qos: .background).async {
             let metadataArray = AVPlayerItem(url: self.URL).asset.commonMetadata
             
             for item in metadataArray
             {
-                item.loadValuesAsynchronously(forKeys: [convertFromAVMetadataKeySpace(AVMetadataKeySpace.common)], completionHandler: { () -> Void in
+                item.loadValuesAsynchronously(forKeys: [AVMetadataKeySpace.common.rawValue], completionHandler: { () -> Void in
                     self.meta.process(metaItem: item)
                     DispatchQueue.main.async {
                         self.scheduleNotification()
@@ -206,15 +199,15 @@ open class JukeboxItem: NSObject {
 private extension JukeboxItem.Meta {
     mutating func process(metaItem item: AVMetadataItem) {
         
-        switch convertFromOptionalAVMetadataKey(item.commonKey)
+        switch item.commonKey
         {
-        case "title"? :
+        case AVMetadataKey.commonKeyTitle? :
             title = item.value as? String
-        case "albumName"? :
+        case AVMetadataKey.commonKeyAlbumName :
             album = item.value as? String
-        case "artist"? :
+        case AVMetadataKey.commonKeyArtist? :
             artist = item.value as? String
-        case "artwork"? :
+        case AVMetadataKey.commonKeyArtwork? :
             processArtwork(fromMetadataItem : item)
         default :
             break
@@ -243,15 +236,4 @@ private extension CMTime {
         guard time.isNaN == false else { return nil }
         return time
     }
-}
-
-// Helper function inserted by Swift 4.2 migrator.
-fileprivate func convertFromAVMetadataKeySpace(_ input: AVMetadataKeySpace) -> String {
-	return input.rawValue
-}
-
-// Helper function inserted by Swift 4.2 migrator.
-fileprivate func convertFromOptionalAVMetadataKey(_ input: AVMetadataKey?) -> String? {
-	guard let input = input else { return nil }
-	return input.rawValue
 }
