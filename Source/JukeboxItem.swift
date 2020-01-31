@@ -46,6 +46,7 @@ open class JukeboxItem: NSObject {
             let identifier: String
             var delegate: JukeboxItemDelegate?
     fileprivate var didLoad = false
+    fileprivate var didLoadMetadata = false
     open  var localTitle: String?
     public  let URL: Foundation.URL
     
@@ -60,19 +61,21 @@ open class JukeboxItem: NSObject {
     // MARK:- Initializer -
     
     /**
-    Create an instance with an URL and local title
-    
-    - parameter URL: local or remote URL of the audio file
-    - parameter localTitle: an optional title for the file
-    
-    - returns: JukeboxItem instance
-    */
-    public required init(URL : Foundation.URL, localTitle : String? = nil) {
+     Create an instance with an URL and local title
+     
+     - parameter URL: local or remote URL of the audio file
+     - parameter localTitle: an optional title for the file
+     
+     - returns: JukeboxItem instance
+     */
+    public required init(URL : Foundation.URL, localTitle : String? = nil, loadMetadata : Bool = true) {
         self.URL = URL
         self.identifier = UUID().uuidString
         self.localTitle = localTitle
         super.init()
-        configureMetadata()
+        if loadMetadata {
+            configureMetadata()
+        }
     }
     
     override open func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
@@ -168,6 +171,7 @@ open class JukeboxItem: NSObject {
     }
     
     fileprivate func loadAsync(_ completion: @escaping (_ asset: AVURLAsset) -> ()) {
+        configureMetadata()
         let asset = AVURLAsset(url: URL, options: nil)
         
         asset.loadValuesAsynchronously(forKeys: ["duration"], completionHandler: { () -> Void in
@@ -177,10 +181,13 @@ open class JukeboxItem: NSObject {
         })
     }
     
-    fileprivate func configureMetadata()
-    {
+    fileprivate func configureMetadata() {
+        guard !didLoadMetadata else {
+            return
+        }
+        didLoadMetadata = true
         
-       DispatchQueue.global(qos: .background).async {
+        DispatchQueue.global(qos: .background).async {
             let metadataArray = AVPlayerItem(url: self.URL).asset.commonMetadata
             
             for item in metadataArray
